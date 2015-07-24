@@ -228,7 +228,10 @@ http.createServer(function(req, res) {
 						}
 					}
 					var oldFileContent = fs.readFileSync(fileName, 'utf8');
-					newFileContent = oldFileContent.replace(/^(\s)+$/g, "")
+					console.log("oldFileContent:",oldFileContent);
+					//var newFileContent = oldFileContent.replace(/^(\s)+$/g, "")
+					var newFileContent = oldFileContent.replace(/\n\s*\r/g, "");
+					console.log("newFileContent:",newFileContent);
 					if (oldFileContent.length != newFileContent.length) {
 						fs.writeFileSync(fileName, newFileContent, fsoption)
 					}
