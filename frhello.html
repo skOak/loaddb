@@ -1,0 +1,166 @@
+<!DOCTYPE html>
+<html>
+<head>	
+	<title>{DBTYPE}导表工具</title>
+	<script src="xlsx/dist/jszip.js"></script>
+	<script src="xlsx/dist/xlsx.js"></script>
+	<script src="filesaver/FileSaver.js"></script>
+</head>
+<body>
+
+<br/>
+<b>{DBTYPE}导表工具</b><br/>
+<b>注意事项</b><br/>
+<ul>
+<li>文件后缀名必须是xlsx</li>
+<li>文件名XXX.xlsx中XXX必须与要导入的表名一致</li>
+<li>XXX.xlsx中有多个sheet存在的情况下，有效数据必须在第一个sheet中</li>
+<li>有效数据所在的sheet中，第一个row是字段名，从第二个row开始就是有效数据</li>
+<li><b>特别注意：对于level表要注意不能有多余的column；而且导了level表之后要重新运行levellookupgenerate程序</b></li>
+</ul>
+<button type="buttonAddRow" onclick="addNewFileOpt()">AddFileOpt</button>
+<button type="buttonQuit" onclick="quitLoadDB()">Quit</button>
+<div id="inputFiles">
+</div>
+<div style="display:none" id="filelistdiv">
+<select size=5 id="filelist">
+</select>
+<button id="checkfilecontent">查看文件导入内容</button>
+<button id="checkloaddbresult">查看导表结果</button>
+</div>
+<br/><br/><br/>
+<p id="result"></p>
+<script>
+dbtype = '{DBTYPE}';
+dbname = '{DBNAME}';
+fileTxt = new Array();
+nameTxt = new Array();
+xmlHttp = new XMLHttpRequest();
+function displayDate()
+{
+document.getElementById("demo").innerHTML=Date();
+}
+function showCookieStr()
+{
+	document.getElementById("cookieStr").innerHTML = document.cookie;
+}
+function quitLoadDB()
+{
+	xmlHttp.open("GET", "/quit?dbtype="+dbtype, false);
+	xmlHttp.onreadystatechange = function() {
+			document.write(this.responseText);
+		};
+	xmlHttp.send("");
+}
+function dosomething(e)
+{
+	var filepath = this.value;
+	var btnId = this.id.replace("file","button");
+	//document.getElementById("result").innerHTML=filepath;
+	//var index = Number(this.id.replace("file",""));
+	for(var index = 0;index < e.target.files.length;index++) {
+		var fname = e.target.files[index].name
+		if ((fname.length < 6) || (fname.lastIndexOf('.xlsx') != (fname.length-5))) {
+			alert("请选择后缀名为.xlsx的文件");
+			return
+		}
+		var inputfiles = document.getElementById('inputFiles');
+	}
+	convertXLS2UTF8Txt(btnId, e.target.files, 0);
+}
+
+function postDataToDB(index) {
+	if(index < fileTxt.length) {
+		xmlHttp.open("POST","/loaddb?dbtype="+dbtype,false);
+		document.getElementById("result").innerHTML="Sending "+nameTxt[index]+"...";
+		xmlHttp.onreadystatechange = function() {
+			if(this.readyState ==4) {
+				document.getElementById("result").innerHTML=nameTxt[index] + ".xlsx : " + this.statusText;
+				index++;
+				if(index < fileTxt.length) {
+					postDataToDB(index);
+				}
+			}
+		};
+		xmlHttp.send("dbname="+dbname+"&tablename=" + nameTxt[index] + "&content=" + fileTxt[index].replace(/\%/g, "@_@"));
+	}
+}
+
+function submitdb(e)
+{
+	this.setAttribute("disabled", "disabled");
+	if(fileTxt.length > 0) {
+		postDataToDB(0);
+	}
+}
+
+function addNewFileOpt()
+{
+	index = 1;
+	var pInputFiles = document.getElementById("inputFiles");
+	var newPNode = document.createElement("p");
+	newPNode.setAttribute("id", "inputFile"+index);
+
+	var newBtn = document.createElement("button");
+	newBtn.setAttribute("type", "button");
+	newBtn.setAttribute("id", "button"+index);
+	newBtn.setAttribute("disabled", "disabled");
+	newBtn.setAttribute("index", index);
+	newBtn.addEventListener('click', submitdb, false);
+	//newInput.setAttribute("innerHTML", "导表");
+	newBtn.innerHTML="导表";
+	newPNode.appendChild(newBtn);
+
+	var newInput = document.createElement("input");
+	newInput.setAttribute("type", "file");
+	newInput.setAttribute("id", "file"+index);
+	newInput.setAttribute("index", index);
+	newInput.setAttribute("multiple","");
+	//newInput.setAttribute("onchange", "dosomething(this)");
+	//newInput.addEventListener('change', convertXLS2UTF8Txt, false);
+	newInput.addEventListener('change', dosomething, false);
+
+	newPNode.appendChild(newInput);
+
+	pInputFiles.appendChild(newPNode);
+	index++;
+
+	document.getElementById("result").innerHTML="增加一行";
+}
+function convertXLS2UTF8Txt(btnId, files, index)
+{
+	var i,f;
+	var readTxt = "";
+	if (index < files.length) {
+		try {
+		f = files[index];
+		var reader = new FileReader();
+		reader.onload = function(e) {
+			var data = e.target.result;
+			document.getElementById("result").innerHTML=data;
+			var workbook = XLSX.read(data,{type:'binary'});
+			savedSheetName = workbook.SheetNames[0];
+			var worksheet = workbook.Sheets[savedSheetName];
+			readTxt = XLSX.utils.sheet_to_csv(worksheet,{FS:'\t',RS:'\r\n'});
+			var firstNewLine = readTxt.indexOf("\n");
+			readTxt = readTxt.substr(firstNewLine+1);
+			document.getElementById("result").innerHTML=readTxt;
+			fileTxt[index] = readTxt;
+			nameTxt[index] = f.name.replace(".xlsx","");
+			index++;
+			if (index < files.length) {
+				convertXLS2UTF8Txt(btnId,files, index);
+			} else {
+				document.getElementById(btnId).removeAttribute("disabled");
+			}
+		};
+		reader.readAsBinaryString(f);
+		}
+		catch(err) {
+			alert(err.message);
+		}
+	}
+}
+</script>
+</body>
+</html> 

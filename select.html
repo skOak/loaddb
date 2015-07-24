@@ -1,0 +1,35 @@
+<!DOCTYPE html>
+<html>
+<head>	
+	<title>导表工具</title>
+</head>
+<body>
+
+<br/>
+<b>选择要导入的数据库</b><br/>
+<b>注意事项</b><br/>
+<ul>
+<li style="color:red">请确认清楚自己需要导入的数据库！</li>
+</ul>
+<select id='dblist'>
+</select>
+<button id='selectbtn' onclick="select()">点击选择</button>
+<p id='selectValue'></p>
+<script type="text/javascript">
+var dbtypelist = new Array{DBTYPELIST};
+var dblist = document.getElementById('dblist');
+for (x in dbtypelist) {
+	var newoption = document.createElement('option');
+	newoption.setAttribute('value', dbtypelist[x]);
+	newoption.innerHTML = dbtypelist[x];
+	dblist.appendChild(newoption);
+}
+function select() {
+	var value=document.getElementById('dblist').selectedOptions[0].value;
+	document.getElementById('selectValue').innerText='已选择数据库: '+value;
+	//window.open('/'+value,value+'导表工具');
+	window.location.href = '/'+value,value+'导表工具';
+}
+</script>
+</body>
+</html> 
