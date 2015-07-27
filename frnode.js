@@ -200,7 +200,7 @@ http.createServer(function(req, res) {
 							tableName = decodedBody['tablename'];
 						}
 						//console.log('decodedBody[\'content\']:', decodedBody['content'].replace(/\@\_\@/g,"%"));
-						fs.writeFileSync(fileName, decodedBody['content'].replace(/\@\_\@/g, "%"), fsoption);
+						//fs.writeFileSync(fileName, decodedBody['content'].replace(/\@\_\@/g, "%"), fsoption);
 						first = false;
 					} else {
 						fs.appendFileSync(fileName, fullbody, fsoption);
@@ -230,7 +230,7 @@ http.createServer(function(req, res) {
 					var oldFileContent = fs.readFileSync(fileName, 'utf8');
 					console.log("oldFileContent:",oldFileContent);
 					//var newFileContent = oldFileContent.replace(/^(\s)+$/g, "")
-					var newFileContent = oldFileContent.replace(/\n\s*\r/g, "");
+					var newFileContent = oldFileContent.replace(/\n\s*\r/g, "").replace(/\@\_\@/g, "%");
 					console.log("newFileContent:",newFileContent);
 					if (oldFileContent.length != newFileContent.length) {
 						fs.writeFileSync(fileName, newFileContent, fsoption)
@@ -371,7 +371,7 @@ function loadFileToDB(httpres, connection, fileName, dbName, tableName) {
 					}
 
 					var loadDataInFile = 'load data local infile \'' + fileName + '\' into table ' + dbName + '.' + tableName + ' fields terminated by \'\\t\' optionally enclosed by \'"\' lines terminated by \'\\r\\n\'';
-					console.log("logDataInFile:", loadDataInFile);
+					console.log("logDataInFile:(", new Date(), ")", loadDataInFile);
 					connection.query(loadDataInFile, function(err) {
 						if (err) {
 							connection.rollback(function() {
