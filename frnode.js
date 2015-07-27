@@ -200,7 +200,7 @@ http.createServer(function(req, res) {
 							tableName = decodedBody['tablename'];
 						}
 						//console.log('decodedBody[\'content\']:', decodedBody['content'].replace(/\@\_\@/g,"%"));
-						//fs.writeFileSync(fileName, decodedBody['content'].replace(/\@\_\@/g, "%"), fsoption);
+						fs.writeFileSync(fileName, decodedBody['content'], fsoption);
 						first = false;
 					} else {
 						fs.appendFileSync(fileName, fullbody, fsoption);
