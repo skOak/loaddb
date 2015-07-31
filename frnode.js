@@ -6,7 +6,6 @@ if (!url) {
 	return;
 }
 var querystring = require('querystring');
-
 var fsoption = {
 	encoding: 'utf8',
 	autoClose: true
@@ -15,20 +14,20 @@ var hellohtml = fs.readFileSync('frhello.html', 'utf8');
 var selecthtml = fs.readFileSync('select.html', 'utf8');
 var dbconfigs = JSON.parse(fs.readFileSync('dbconfig.json', 'utf8'));
 console.log("dbconfigs:", dbconfigs);
-var dbhostlist = new Map();
+var dbhostlist = {};
 var dbcandlist = new Array(dbconfigs.dblist.length);
 var dbcandliststr = '(';
 for (x in dbconfigs.dblist) {
 	console.log("x:", x, "\tdbtype:", dbconfigs.dblist[x].dbtype, "\tdbconfig:", dbconfigs.dblist[x].dbconfig);
 	dbcandlist[x] = dbconfigs.dblist[x].dbtype;
 	dbcandliststr = dbcandliststr + '\'' + dbconfigs.dblist[x].dbtype + '\'';
-	dbhostlist.set(dbconfigs.dblist[x].dbtype, dbconfigs.dblist[x].dbconfig);
+	dbhostlist[dbconfigs.dblist[x].dbtype] = dbconfigs.dblist[x].dbconfig;
 }
 dbcandliststr = dbcandliststr.replace(/\'\'/g, '\'\,\'') + ')';
 selecthtml = selecthtml.replace(/\{DBTYPELIST\}/g, dbcandliststr);
 //console.log("dbcandlist:",dbcandlist);
 //console.log("dbhostlist['fr_01']:",dbhostlist.get('fr_01'));
-var dbconnlist = new Map();
+var dbconnlist = {};
 /*
 var dbcandlist = new Array('fr_01', 'fr_beta', 'fr_cehua', 'tg_beta', 'tg_dev');
 dbhostlist.set(dbcandlist[0], {
@@ -217,9 +216,9 @@ http.createServer(function(req, res) {
 			req.on('end', function() {
 				// empty 200 OK response for now
 				try {
-					if (dbconnlist.get(dbtype) == null) {
+					if (dbconnlist[dbtype] == null) {
 						connectDB(dbtype);
-						if (dbconnlist.get(dbtype) == null) {
+						if (dbconnlist[dbtype] == null) {
 							console.log("unknow dbtype: ", dbtype);
 							res.writeHead(500, "unknow dbtype:" + dbtype, {
 								'Content-Type': 'text/plain'
@@ -228,14 +227,14 @@ http.createServer(function(req, res) {
 						}
 					}
 					var oldFileContent = fs.readFileSync(fileName, 'utf8');
-					console.log("oldFileContent:",oldFileContent);
+					//console.log("oldFileContent:",oldFileContent);
 					//var newFileContent = oldFileContent.replace(/^(\s)+$/g, "")
 					var newFileContent = oldFileContent.replace(/\n\s*\r/g, "").replace(/\@\_\@/g, "%");
-					console.log("newFileContent:",newFileContent);
+					//console.log("newFileContent:",newFileContent);
 					if (oldFileContent.length != newFileContent.length) {
 						fs.writeFileSync(fileName, newFileContent, fsoption)
 					}
-					loadFileToDB(res, dbconnlist.get(dbtype), fileName, dbName, tableName);
+					loadFileToDB(res, dbconnlist[dbtype], fileName, dbName, tableName);
 
 				} catch (err) {
 					console.log("err: ", err.message);
@@ -269,28 +268,28 @@ function connectDB(connType) {
 		case dbcandlist[3]:
 		case dbcandlist[4]:
 		case dbcandlist[5]:
-			if (dbconnlist.get(connType) == null) {
-				dbconnlist.set(connType, mysql.createConnection({
-					host: dbhostlist.get(connType).host,
-					user: dbhostlist.get(connType).user,
-					password: dbhostlist.get(connType).password,
-					charset: dbhostlist.get(connType).chaset
-				}));
+			if (dbconnlist[connType] == null) {
+				dbconnlist[connType] = mysql.createConnection({
+					host: dbhostlist[connType].host,
+					user: dbhostlist[connType].user,
+					password: dbhostlist[connType].password,
+					charset: dbhostlist[connType].chaset
+				});
 
-				dbconnlist.get(connType).connect(function(err) {
+				dbconnlist[connType].connect(function(err) {
 					if (err) {
 						console.log("connection.connect failed for connType: ", connType);
 						throw err;
 					}
 				});
 
-				dbconnlist.get(connType).on('error', function(err) {
+				dbconnlist[connType].on('error', function(err) {
 					if (err) {
 						console.log("connection error", "(", err.message, ")", "caught for connType: ", connType);
 						closeDB(connType);
 					}
 				});
-				console.log("connectDB :", connType + "@" + dbconnlist.get(connType).config.host);
+				console.log("connectDB :", connType + "@" + dbconnlist[connType].config.host);
 			}
 			break;
 		default:
@@ -306,14 +305,14 @@ function closeDB(connType) {
 		case dbcandlist[3]:
 		case dbcandlist[4]:
 		case dbcandlist[5]:
-			if (dbconnlist.get(connType) != null) {
+			if (dbconnlist[connType] != null) {
 				try {
-					dbconnlist.get(connType).end();
-					console.log("closeDB :", connType + "@" + dbconnlist.get(connType).config.host);
+					dbconnlist[connType].end();
+					console.log("closeDB :", connType + "@" + dbconnlist[connType].config.host);
 				} catch (err) {
 					console.log("connection end failed for connType: ", connType);
 				}
-				dbconnlist.delete(connType);
+				dbconnlist[connType] = null;
 			}
 			break;
 		default:
