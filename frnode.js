@@ -10,21 +10,37 @@ var fsoption = {
 	encoding: 'utf8',
 	autoClose: true
 }
+/**
+ * [hellohtml description]
+ * @type {[type]}
+ */
 var hellohtml = fs.readFileSync('frhello.html', 'utf8');
 var selecthtml = fs.readFileSync('select.html', 'utf8');
+//var faviconico = fs.readFileSync('favicon.ico');
 var dbconfigs = JSON.parse(fs.readFileSync('dbconfig.json', 'utf8'));
 console.log("dbconfigs:", dbconfigs);
 var dbhostlist = {};
 var dbcandlist = new Array(dbconfigs.dblist.length);
+var dbcandhost = new Array(dbconfigs.dblist.length);
+var dbcandscheme = new Array(dbconfigs.dblist.length);
 var dbcandliststr = '(';
+var dbcandhoststr = '(';
+var dbcandschemestr = '(';
 for (x in dbconfigs.dblist) {
-	console.log("x:", x, "\tdbtype:", dbconfigs.dblist[x].dbtype, "\tdbconfig:", dbconfigs.dblist[x].dbconfig);
+	//console.log("x:", x, "\tdbtype:", dbconfigs.dblist[x].dbtype, "\tdbconfig:", dbconfigs.dblist[x].dbconfig);
 	dbcandlist[x] = dbconfigs.dblist[x].dbtype;
 	dbcandliststr = dbcandliststr + '\'' + dbconfigs.dblist[x].dbtype + '\'';
+	dbcandhoststr = dbcandhoststr + '\'' + dbconfigs.dblist[x].dbconfig.host + '\'';
+	dbcandschemestr = dbcandschemestr + '\'' + dbconfigs.dblist[x].dbconfig.table + '\'';
 	dbhostlist[dbconfigs.dblist[x].dbtype] = dbconfigs.dblist[x].dbconfig;
 }
+console.log(dbhostlist);
 dbcandliststr = dbcandliststr.replace(/\'\'/g, '\'\,\'') + ')';
+dbcandhoststr = dbcandhoststr.replace(/\'\'/g, '\'\,\'') + ')';
+dbcandschemestr = dbcandschemestr.replace(/\'\'/g, '\'\,\'') + ')';
 selecthtml = selecthtml.replace(/\{DBTYPELIST\}/g, dbcandliststr);
+selecthtml = selecthtml.replace(/\{DBHOSTLIST\}/g, dbcandhoststr);
+selecthtml = selecthtml.replace(/\{DBSCHEMELIST\}/g, dbcandschemestr);
 //console.log("dbcandlist:",dbcandlist);
 //console.log("dbhostlist['fr_01']:",dbhostlist.get('fr_01'));
 var dbconnlist = {};
@@ -120,6 +136,13 @@ http.createServer(function(req, res) {
 				});
 				res.end(fs.readFileSync('filesaver/FileSaver.js', 'utf8'));
 				break;
+			/*case '/plp_dev':
+				res.writeHead(200, {
+					'Content-Type': 'text/html; charset=UTF-8'
+				});
+				respbodytmp = parseHTML(hellohtml, /\{DBNAME\}/g, 'plp_game');
+				res.end(parseHTML(respbodytmp, /\{DBTYPE\}/g, 'plp_dev'));
+				break;
 			case '/fr_beta':
 				res.writeHead(200, {
 					'Content-Type': 'text/html; charset=UTF-8'
@@ -154,6 +177,13 @@ http.createServer(function(req, res) {
 				});
 				respbodytmp = parseHTML(hellohtml, /\{DBNAME\}/g, 'tg_game');
 				res.end(parseHTML(respbodytmp, /\{DBTYPE\}/g, 'tg_dev'));
+				break;*/
+			case '/favicon.ico':
+				//connectDB("FR");
+				res.writeHead(200, {
+					'Content-Type': 'image/x-icon'
+				});
+				res.end(fs.readFileSync('favicon.ico'), 'binary');
 				break;
 			case '/':
 				//connectDB("FR");
@@ -163,10 +193,23 @@ http.createServer(function(req, res) {
 				res.end(selecthtml);
 				break;
 			default:
-				res.writeHead(200, {
-					'Content-Type': 'text/plain'
-				});
-				res.end('Hello World!GET ' + req.url);
+				if (pathname.length > 1 && pathname.charAt(0) == '/') {
+					dbtype = pathname.substring(1);
+					if (dbhostlist[dbtype] == null) break;
+					tablename = dbhostlist[dbtype].table;
+
+					res.writeHead(200, {
+						'Content-Type': 'text/html; charset=UTF-8'
+					});
+					respbodytmp = parseHTML(hellohtml, /\{DBNAME\}/g, tablename);
+					respbodytmp = parseHTML(respbodytmp, /\{DBHOST\}/g, dbhostlist[dbtype].host);
+					res.end(parseHTML(respbodytmp, /\{DBTYPE\}/g, dbtype));
+				} else {
+					res.writeHead(200, {
+						'Content-Type': 'text/plain'
+					});
+					res.end('Hello World!GET ' + req.url);
+			}
 		}
 		if (req.url === '/hello.html') {} else {}
 	}
@@ -254,11 +297,20 @@ http.createServer(function(req, res) {
 }).listen(26888, "10.0.30.130");
 console.log('Server running!');
 
-
+/**
+ * @param  {[[]byte]}
+ * @param  {[string]}
+ * @param  {[string]}
+ * @return {[string]}
+ */
 function parseHTML(data, src_str, dst_str) {
 	return data.replace(src_str, dst_str);
 }
 
+/**
+ * @param  {string}
+ * @return {null}
+ */
 function connectDB(connType) {
 
 	switch (connType) {
@@ -273,7 +325,7 @@ function connectDB(connType) {
 					host: dbhostlist[connType].host,
 					user: dbhostlist[connType].user,
 					password: dbhostlist[connType].password,
-					charset: dbhostlist[connType].chaset
+					charset: dbhostlist[connType].charset
 				});
 
 				dbconnlist[connType].connect(function(err) {
