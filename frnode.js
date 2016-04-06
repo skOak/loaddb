@@ -277,7 +277,7 @@ http.createServer(function(req, res) {
 					if (oldFileContent.length != newFileContent.length) {
 						fs.writeFileSync(fileName, newFileContent, fsoption)
 					}
-					loadFileToDB(res, dbconnlist[dbtype], fileName, dbName, tableName);
+					loadFileToDB(req.connection.remoteAddress,res, dbconnlist[dbtype], fileName, dbName, tableName);
 
 				} catch (err) {
 					console.log("err: ", err.message);
@@ -295,7 +295,7 @@ http.createServer(function(req, res) {
 		}
 	}
 }).listen(26888, "10.0.30.130");
-console.log('Server running!');
+console.log('Server running at 26888');
 
 /**
  * @param  {[[]byte]}
@@ -372,9 +372,9 @@ function closeDB(connType) {
 	}
 }
 
-function loadFileToDB(httpres, connection, fileName, dbName, tableName) {
+function loadFileToDB(remoteAddress, httpres, connection, fileName, dbName, tableName) {
 
-	console.log("loadFileToDB To", dbName + ":" + tableName + "@" + connection.config.host);
+	console.log(remoteAddress + " loadFileToDB To", dbName + ":" + tableName + "@" + connection.config.host);
 
 	connection.beginTransaction(function(err) {
 
