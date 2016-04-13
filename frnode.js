@@ -6,6 +6,8 @@ if (!url) {
 	return;
 }
 var querystring = require('querystring');
+var randomstring = require('randomstring');
+var atob = function(b64Encoded) { return new Buffer(b64Encoded,'base64').toString(); };
 var fsoption = {
 	encoding: 'utf8',
 	autoClose: true
@@ -223,29 +225,18 @@ http.createServer(function(req, res) {
 			var dbName = '';
 			var tableName = '';
 			var first = true;
+			var rName = randomstring.generate(7);
 			var dbtype = url.parse(req.url, true).query.dbtype;
 			req.on('data', function(chunk) {
 				try {
-					var fullbody = chunk.toString();
-					//console.log('fullbody:', fullbody);
-					console.log("Received body data size:", fullbody.length);
+					console.log("Received body data size:", chunk.toString().length);
 					if (first) {
-						var decodedBody = querystring.parse(fullbody);
-						//console.log("decodeBody: ", decodedBody);
-						if (fileName === '') {
-							fileName = dbtype + '_' + decodedBody['tablename'] + '.txt';
-						}
-						if (dbName === '') {
-							dbName = decodedBody['dbname'];
-						}
-						if (tableName === '') {
-							tableName = decodedBody['tablename'];
-						}
-						//console.log('decodedBody[\'content\']:', decodedBody['content'].replace(/\@\_\@/g,"%"));
-						fs.writeFileSync(fileName, decodedBody['content'], fsoption);
+						fs.writeFileSync(rName+"_raw.txt", chunk, 'binary');
+						//fs.writeFileSync(fileName, decodeURIComponent(atob(decodedBody['content'])), fsoption);
 						first = false;
 					} else {
-						fs.appendFileSync(fileName, fullbody, fsoption);
+						fs.appendFileSync(rName+"_raw.txt", chunk, 'binary');
+						//fs.appendFileSync(fileName, decodeURIComponent(atob(fullbody)), fsoption);
 					}
 				} catch (err) {
 					console.log("err: ", err.message);
@@ -259,6 +250,29 @@ http.createServer(function(req, res) {
 			req.on('end', function() {
 				// empty 200 OK response for now
 				try {
+					var rawContent = fs.readFileSync(rName+"_raw.txt", 'utf8');
+					var decodedBody = querystring.parse(rawContent);
+					if (fileName === '') {
+						fileName = dbtype + '_' + decodedBody['tablename'] + '_' + rName + '.txt';
+					}
+					if (dbName === '') {
+						dbName = decodedBody['dbname'];
+					}
+					if (tableName === '') {
+						tableName = decodedBody['tablename'];
+					}
+					var oldFileContent = decodedBody['content'];
+					//var newFileContent = oldFileContent.replace(/^(\s)+$/g, "")
+					var newFileContent = oldFileContent.replace(/\n\s*\r/g, "").replace(/\@\_\@/g, "%").replace(/\#_\#/g,"+");
+					if (oldFileContent.length != newFileContent.length) {
+						//fs.writeFileSync("raw2.txt", oldFileContent, fsoption)
+						//fs.writeFileSync("raw3.txt", newFileContent, fsoption)
+						fs.writeFileSync(fileName, newFileContent, fsoption)
+					}
+					// res.writeHead(200, dbName + ":" + tableName + " OK", {
+					// 	'Content-Type': 'text/plain'
+					// });
+					// res.end();
 					if (dbconnlist[dbtype] == null) {
 						connectDB(dbtype);
 						if (dbconnlist[dbtype] == null) {
@@ -268,14 +282,6 @@ http.createServer(function(req, res) {
 							});
 							return;
 						}
-					}
-					var oldFileContent = fs.readFileSync(fileName, 'utf8');
-					//console.log("oldFileContent:",oldFileContent);
-					//var newFileContent = oldFileContent.replace(/^(\s)+$/g, "")
-					var newFileContent = oldFileContent.replace(/\n\s*\r/g, "").replace(/\@\_\@/g, "%");
-					//console.log("newFileContent:",newFileContent);
-					if (oldFileContent.length != newFileContent.length) {
-						fs.writeFileSync(fileName, newFileContent, fsoption)
 					}
 					loadFileToDB(req.connection.remoteAddress,res, dbconnlist[dbtype], fileName, dbName, tableName);
 

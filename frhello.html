@@ -16,7 +16,6 @@
 <li>文件名XXX.xlsx中XXX必须与要导入的表名一致</li>
 <li>XXX.xlsx中有多个sheet存在的情况下，有效数据必须在第一个sheet中</li>
 <li>有效数据所在的sheet中，第一个row是中文字段名，第二个row是英文字段名，从第三个row开始就是有效数据</li>
-<li><b>特别注意：对于level表要注意不能有多余的column；而且导了level表之后要重新运行levellookupgenerate程序</b></li>
 </ul>
 <button type="buttonAddRow" onclick="addNewFileOpt()">AddFileOpt</button>
 <button type="buttonQuit" onclick="quitLoadDB()">Quit</button>
@@ -82,7 +81,8 @@ function postDataToDB(index) {
 				}
 			}
 		};
-		xmlHttp.send("dbname="+dbname+"&tablename=" + nameTxt[index] + "&content=" + fileTxt[index].replace(/\%/g, "@_@"));
+		//xmlHttp.send("dbname="+dbname+"&tablename=" + nameTxt[index] + "&content=" + btoa(encodeURIComponent(fileTxt[index].replace(/\%/g, "@_@"))));
+		xmlHttp.send("dbname="+dbname+"&tablename=" + nameTxt[index] + "&content=" + fileTxt[index].replace(/\%/g, "@_@").replace(/\+/g,"#_#"));
 	}
 }
 
