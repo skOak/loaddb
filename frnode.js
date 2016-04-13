@@ -264,11 +264,12 @@ http.createServer(function(req, res) {
 					var oldFileContent = decodedBody['content'];
 					//var newFileContent = oldFileContent.replace(/^(\s)+$/g, "")
 					var newFileContent = oldFileContent.replace(/\n\s*\r/g, "").replace(/\@\_\@/g, "%").replace(/\#_\#/g,"+");
-					if (oldFileContent.length != newFileContent.length) {
-						//fs.writeFileSync("raw2.txt", oldFileContent, fsoption)
-						//fs.writeFileSync("raw3.txt", newFileContent, fsoption)
-						fs.writeFileSync(fileName, newFileContent, fsoption)
-					}
+
+					//fs.writeFileSync("raw2.txt", oldFileContent, fsoption)
+					//fs.writeFileSync("raw3.txt", newFileContent, fsoption)
+					fs.writeFileSync(fileName, newFileContent, fsoption)
+					console.log('file', fileName, 'created');
+
 					// res.writeHead(200, dbName + ":" + tableName + " OK", {
 					// 	'Content-Type': 'text/plain'
 					// });
