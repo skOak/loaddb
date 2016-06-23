@@ -454,12 +454,26 @@ function loadFileToDB(remoteAddress, httpres, connection, fileName, dbName, tabl
 									return;
 								});
 							}
-							console.log('success!', new Date());
+							var timestamp = Math.floor(new Date() / 1000);
+							var updateDataVersion = 'update ' + dbName + '.config set config.string = ' + timestamp + ' where config.name = \'client_data_version\'' ;
+							console.log("update client_data_version to ", timestamp);
+							connection.query(updateDataVersion, function(err) {
+								if (err) {
+									//throw err;
+									httpres.writeHead(500, err.message, {
+										'Content-Type': 'text/plain'
+									});
+									httpres.end();
+									return;
+								}
 
-							httpres.writeHead(200, dbName + ":" + tableName + " OK", {
-								'Content-Type': 'text/plain'
-							});
-							httpres.end();
+								console.log('success!', new Date());
+
+								httpres.writeHead(200, dbName + ":" + tableName + " OK", {
+									'Content-Type': 'text/plain'
+								});
+								httpres.end();
+							})
 
 						});
 					});
