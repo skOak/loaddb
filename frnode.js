@@ -460,7 +460,7 @@ function loadFileToDB(remoteAddress, httpres, connection, fileName, dbName, tabl
 							connection.query(updateDataVersion, function(err) {
 								if (err) {
 									//throw err;
-									httpres.writeHead(500, err.message, {
+									httpres.writeHead(500, 'loaddata OK, but updateDataVersion returned' + err.message, {
 										'Content-Type': 'text/plain'
 									});
 									httpres.end();
